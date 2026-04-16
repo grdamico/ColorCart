@@ -36,12 +36,12 @@ You can **highlight items with colors** (like a marker) and instantly see partia
 
 ## 📱 Example
 
-| Item     | Price | Qty | Line Total | Color |
-| -------- | ----: | --: | ---------: | ----- |
-| Apples   |  2.40 |   1 |       2.40 | 🟢    |
-| Zucchini |  1.80 |   1 |       1.80 | 🟢    |
-| Milk     |  1.90 |   1 |       1.90 | 🟡    |
-| Yogurt   |  2.20 |   1 |       2.20 | 🟡    |
+| Item     | Price | Qty | Line Total |
+| -------- | ----: | --: | ---------: |
+| Apples   |  2.40 |   1 |       2.40 |
+| Zucchini |  1.80 |   1 |       1.80 |
+| Milk     |  1.90 |   1 |       1.90 |
+| Yogurt   |  2.20 |   1 |       2.20 |
 
 **Grand Total:** 8.30
 **Green Total (Produce):** 4.20
