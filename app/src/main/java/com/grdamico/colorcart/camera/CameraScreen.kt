@@ -1,5 +1,8 @@
 package com.grdamico.colorcart.camera
 
+import android.graphics.Bitmap
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.grdamico.colorcart.ocr.ProductLabelOcr
 import com.grdamico.colorcart.ui.components.SaveProductDialog
 import com.grdamico.colorcart.ui.receipt.ReceiptViewModel
 
@@ -24,6 +28,34 @@ fun CameraScreen(
 ) {
     var showSaveDialog by remember { mutableStateOf(false) }
     var duplicateBisMessage by remember { mutableStateOf<String?>(null) }
+    var ocrErrorMessage by remember { mutableStateOf<String?>(null) }
+    var isProcessing by remember { mutableStateOf(false) }
+
+    var extractedName by remember { mutableStateOf("") }
+    var extractedPrice by remember { mutableStateOf("") }
+
+    val takePicturePreviewLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        if (bitmap == null) {
+            isProcessing = false
+            return@rememberLauncherForActivityResult
+        }
+
+        ProductLabelOcr.recognizeFromBitmap(
+            bitmap = bitmap,
+            onSuccess = { parsed ->
+                extractedName = parsed.productName
+                extractedPrice = parsed.price
+                isProcessing = false
+                showSaveDialog = true
+            },
+            onError = {
+                isProcessing = false
+                ocrErrorMessage = "I couldn't read the label. Try again with a closer photo."
+            }
+        )
+    }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -32,8 +64,14 @@ fun CameraScreen(
     ) {
         Text("Camera screen")
 
-        Button(onClick = { showSaveDialog = true }) {
-            Text("Take photo")
+        Button(
+            onClick = {
+                isProcessing = true
+                takePicturePreviewLauncher.launch(null)
+            },
+            enabled = !isProcessing
+        ) {
+            Text(if (isProcessing) "Reading label..." else "Take photo")
         }
 
         Button(onClick = onOpenReceipt) {
@@ -43,8 +81,8 @@ fun CameraScreen(
 
     if (showSaveDialog) {
         SaveProductDialog(
-            initialName = "Milk",
-            initialPrice = "2.49",
+            initialName = extractedName,
+            initialPrice = extractedPrice,
             initialQuantity = "1",
             title = "Save product",
             onDismiss = { showSaveDialog = false },
@@ -58,10 +96,12 @@ fun CameraScreen(
 
                 if (added) {
                     showSaveDialog = false
+                    extractedName = ""
+                    extractedPrice = ""
                 } else {
                     showSaveDialog = false
                     duplicateBisMessage =
-                        "You cannot add ${name.trim()} Bis because a Bis of ${name.trim()} already exists."
+                        "You already have both ${name.trim()} and ${name.trim()} Bis. Start a new receipt or edit the existing item instead."
                 }
             }
         )
@@ -74,6 +114,19 @@ fun CameraScreen(
             text = { Text(message) },
             confirmButton = {
                 TextButton(onClick = { duplicateBisMessage = null }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
+    ocrErrorMessage?.let { message ->
+        AlertDialog(
+            onDismissRequest = { ocrErrorMessage = null },
+            title = { Text("Label not read") },
+            text = { Text(message) },
+            confirmButton = {
+                TextButton(onClick = { ocrErrorMessage = null }) {
                     Text("OK")
                 }
             }
