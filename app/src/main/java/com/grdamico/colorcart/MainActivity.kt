@@ -13,11 +13,16 @@ import androidx.navigation.compose.rememberNavController
 import com.grdamico.colorcart.camera.CameraScreen
 import com.grdamico.colorcart.ui.receipt.ReceiptScreen
 import com.grdamico.colorcart.ui.receipt.ReceiptViewModel
+import com.grdamico.colorcart.ui.receipt.ReceiptViewModelFactory
 import com.grdamico.colorcart.ui.theme.ColorCartTheme
 
 class MainActivity : ComponentActivity() {
 
-    private val viewModel: ReceiptViewModel by viewModels()
+    private val viewModel: ReceiptViewModel by viewModels {
+        ReceiptViewModelFactory(
+            (application as ColorCartApp).receiptRepository
+        )
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

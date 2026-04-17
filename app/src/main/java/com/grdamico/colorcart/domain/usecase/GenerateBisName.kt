@@ -6,14 +6,24 @@ class GenerateBisName {
     operator fun invoke(
         proposedName: String,
         existingRows: List<ReceiptRow>
-    ): String {
+    ): String? {
         val normalized = proposedName.trim()
-        if (normalized.isBlank()) return proposedName
+        if (normalized.isBlank()) return null
 
-        val alreadyExists = existingRows.any { row ->
+        val existsBase = existingRows.any { row ->
             row.item.equals(normalized, ignoreCase = true)
         }
 
-        return if (alreadyExists) "$normalized Bis" else normalized
+        val bisName = "$normalized Bis"
+
+        val existsBis = existingRows.any { row ->
+            row.item.equals(bisName, ignoreCase = true)
+        }
+
+        return when {
+            !existsBase -> normalized
+            !existsBis -> bisName
+            else -> null
+        }
     }
 }

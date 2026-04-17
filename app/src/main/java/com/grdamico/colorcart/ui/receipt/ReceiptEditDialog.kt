@@ -1,8 +1,10 @@
 package com.grdamico.colorcart.ui.receipt
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -28,6 +30,7 @@ import com.grdamico.colorcart.domain.model.RowColor
 fun ReceiptEditDialog(
     row: ReceiptRow,
     onDismiss: () -> Unit,
+    onDelete: () -> Unit,
     onSave: (Double, Int, RowColor) -> Unit
 ) {
     var priceText by remember(row.id) { mutableStateOf(row.price.toString()) }
@@ -114,8 +117,16 @@ fun ReceiptEditDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TextButton(onClick = onDelete) {
+                    Text("Delete")
+                }
+
+                TextButton(onClick = onDismiss) {
+                    Text("Cancel")
+                }
             }
         }
     )

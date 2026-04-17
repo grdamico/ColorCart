@@ -2,6 +2,7 @@ package com.grdamico.colorcart.ui.receipt
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.grdamico.colorcart.data.repository.ReceiptRepository
 import com.grdamico.colorcart.domain.model.ReceiptRow
 import com.grdamico.colorcart.domain.model.RowColor
 import com.grdamico.colorcart.domain.usecase.CalculateColorTotals
@@ -12,27 +13,23 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
-class ReceiptViewModel : ViewModel() {
+class ReceiptViewModel(
+    private val repository: ReceiptRepository
+) : ViewModel() {
 
     private val calculateColorTotals = CalculateColorTotals()
     private val calculateGrandTotal = CalculateGrandTotal()
     private val generateBisName = GenerateBisName()
 
-    private val _rows = MutableStateFlow(
-        listOf(
-            ReceiptRow(1L, "Apples", 2.40, 1, RowColor.GREEN),
-            ReceiptRow(2L, "Milk", 1.89, 1, RowColor.YELLOW),
-            ReceiptRow(3L, "Bread", 1.50, 2, RowColor.NONE)
-        )
-    )
-
     private val _searchQuery = MutableStateFlow("")
     private val _editingRowId = MutableStateFlow<Long?>(null)
 
+    private val rowsFlow = repository.observeRows()
+
     val uiState: StateFlow<ReceiptUiState> = combine(
-        _rows,
+        rowsFlow,
         _searchQuery,
         _editingRowId
     ) { rows, searchQuery, editingRowId ->
@@ -51,14 +48,7 @@ class ReceiptViewModel : ViewModel() {
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = ReceiptUiState(
-            rows = _rows.value,
-            filteredRows = _rows.value,
-            colorTotals = calculateColorTotals(_rows.value),
-            grandTotal = calculateGrandTotal(_rows.value),
-            editingRow = null,
-            searchQuery = ""
-        )
+        initialValue = ReceiptUiState()
     )
 
     private fun filterRows(
@@ -66,16 +56,11 @@ class ReceiptViewModel : ViewModel() {
         query: String
     ): List<ReceiptRow> {
         val normalizedQuery = query.trim()
-
         if (normalizedQuery.isBlank()) return rows
 
         return rows.filter { row ->
             row.item.contains(normalizedQuery, ignoreCase = true)
         }
-    }
-
-    private fun nextId(): Long {
-        return (_rows.value.maxOfOrNull { it.id } ?: 0L) + 1L
     }
 
     fun updateSearchQuery(query: String) {
@@ -90,36 +75,37 @@ class ReceiptViewModel : ViewModel() {
         _editingRowId.value = null
     }
 
-    fun getDisplayNameForSave(proposedName: String): String {
-        return generateBisName(
-            proposedName = proposedName,
-            existingRows = _rows.value
-        )
-    }
-
     fun addRow(
         proposedName: String,
         price: Double,
         qty: Int,
         color: RowColor
-    ) {
+    ): Boolean {
+        val currentRows = uiState.value.rows
         val normalizedName = proposedName.trim()
 
-        if (normalizedName.isBlank()) return
-        if (price < 0.0) return
-        if (qty <= 0) return
+        if (normalizedName.isBlank()) return false
+        if (price < 0.0) return false
+        if (qty <= 0) return false
 
-        val finalName = getDisplayNameForSave(normalizedName)
+        val finalName = generateBisName(
+            proposedName = normalizedName,
+            existingRows = currentRows
+        ) ?: return false
 
-        val newRow = ReceiptRow(
-            id = nextId(),
-            item = finalName,
-            price = price,
-            qty = qty,
-            color = color
-        )
+        viewModelScope.launch {
+            val newRow = ReceiptRow(
+                id = repository.nextId(),
+                item = finalName,
+                price = price,
+                qty = qty,
+                color = color
+            )
 
-        _rows.update { rows -> rows + newRow }
+            repository.insertRow(newRow)
+        }
+
+        return true
     }
 
     fun updateRow(
@@ -131,30 +117,26 @@ class ReceiptViewModel : ViewModel() {
         if (newPrice < 0.0) return
         if (newQty <= 0) return
 
-        _rows.update { rows ->
-            rows.map { row ->
-                if (row.id == id) {
-                    row.copy(
-                        price = newPrice,
-                        qty = newQty,
-                        color = newColor
-                    )
-                } else {
-                    row
-                }
-            }
-        }
+        val currentRow = uiState.value.rows.find { it.id == id } ?: return
 
-        _editingRowId.value = null
+        viewModelScope.launch {
+            repository.updateRow(
+                currentRow.copy(
+                    price = newPrice,
+                    qty = newQty,
+                    color = newColor
+                )
+            )
+            _editingRowId.value = null
+        }
     }
 
     fun deleteRow(id: Long) {
-        _rows.update { rows ->
-            rows.filterNot { it.id == id }
-        }
-
-        if (_editingRowId.value == id) {
-            _editingRowId.value = null
+        viewModelScope.launch {
+            repository.deleteRow(id)
+            if (_editingRowId.value == id) {
+                _editingRowId.value = null
+            }
         }
     }
 
@@ -162,7 +144,7 @@ class ReceiptViewModel : ViewModel() {
         val normalized = name.trim()
         if (normalized.isBlank()) return false
 
-        return _rows.value.any { row ->
+        return uiState.value.rows.any { row ->
             row.item.equals(normalized, ignoreCase = true)
         }
     }
