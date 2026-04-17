@@ -1,5 +1,8 @@
 package com.grdamico.colorcart.ui.receipt
 
+import android.graphics.Bitmap
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,17 +30,46 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.grdamico.colorcart.ocr.ProductLabelOcr
 import com.grdamico.colorcart.ui.components.SaveProductDialog
 
 @Composable
 fun ReceiptScreen(
-    viewModel: ReceiptViewModel,
-    onOpenCamera: () -> Unit
+    viewModel: ReceiptViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
     var showAddDialog by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
     var duplicateBisMessage by remember { mutableStateOf<String?>(null) }
+    var ocrErrorMessage by remember { mutableStateOf<String?>(null) }
+    var isProcessing by remember { mutableStateOf(false) }
+
+    var extractedName by remember { mutableStateOf("") }
+    var extractedPrice by remember { mutableStateOf("") }
+
+    val takePicturePreviewLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        if (bitmap == null) {
+            isProcessing = false
+            return@rememberLauncherForActivityResult
+        }
+
+        ProductLabelOcr.recognizeFromBitmap(
+            bitmap = bitmap,
+            onSuccess = { parsed ->
+                extractedName = parsed.productName
+                extractedPrice = parsed.price
+                isProcessing = false
+                showAddDialog = true
+            },
+            onError = {
+                isProcessing = false
+                ocrErrorMessage = "I couldn't read the label. Try again with a closer photo."
+            }
+        )
+    }
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -79,7 +111,11 @@ fun ReceiptScreen(
             )
 
             Button(
-                onClick = { showAddDialog = true }
+                onClick = {
+                    extractedName = ""
+                    extractedPrice = ""
+                    showAddDialog = true
+                }
             ) {
                 Text("+")
             }
@@ -122,17 +158,24 @@ fun ReceiptScreen(
         ColorTotalsSection(
             totals = uiState.colorTotals,
             grandTotal = uiState.grandTotal,
-            onBackToCamera = onOpenCamera
+            onTakePhoto = {
+                isProcessing = true
+                takePicturePreviewLauncher.launch(null)
+            }
         )
     }
 
     if (showAddDialog) {
         SaveProductDialog(
-            initialName = "",
-            initialPrice = "",
+            initialName = extractedName,
+            initialPrice = extractedPrice,
             initialQuantity = "1",
             title = "Add product",
-            onDismiss = { showAddDialog = false },
+            onDismiss = {
+                showAddDialog = false
+                extractedName = ""
+                extractedPrice = ""
+            },
             onSave = { name, price, qty, color ->
                 val added = viewModel.addRow(
                     proposedName = name,
@@ -143,6 +186,8 @@ fun ReceiptScreen(
 
                 if (added) {
                     showAddDialog = false
+                    extractedName = ""
+                    extractedPrice = ""
                 } else {
                     showAddDialog = false
                     duplicateBisMessage =
@@ -207,6 +252,28 @@ fun ReceiptScreen(
                     Text("OK")
                 }
             }
+        )
+    }
+
+    ocrErrorMessage?.let { message ->
+        AlertDialog(
+            onDismissRequest = { ocrErrorMessage = null },
+            title = { Text("Label not read") },
+            text = { Text(message) },
+            confirmButton = {
+                TextButton(onClick = { ocrErrorMessage = null }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
+    if (isProcessing) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text("Reading label") },
+            text = { Text("Hold on a second while I extract the product name and price.") },
+            confirmButton = {}
         )
     }
 }

@@ -27,7 +27,7 @@ import com.grdamico.colorcart.domain.model.RowColor
 fun ColorTotalsSection(
     totals: Map<RowColor, Double>,
     grandTotal: Double,
-    onBackToCamera: () -> Unit
+    onTakePhoto: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -63,12 +63,12 @@ fun ColorTotalsSection(
             }
 
             Button(
-                onClick = onBackToCamera,
+                onClick = onTakePhoto,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 12.dp)
             ) {
-                Text("Back to camera")
+                Text("Take photo")
             }
         }
     }
