@@ -87,6 +87,7 @@ class ReceiptViewModel : ViewModel() {
     fun addRow(
         proposedName: String,
         price: Double,
+        qty: Int,
         color: RowColor
     ) {
         val finalName = getDisplayNameForSave(proposedName)
@@ -95,7 +96,7 @@ class ReceiptViewModel : ViewModel() {
             id = nextId(),
             item = finalName,
             price = price,
-            qty = 1,
+            qty = qty,
             color = color
         )
 
