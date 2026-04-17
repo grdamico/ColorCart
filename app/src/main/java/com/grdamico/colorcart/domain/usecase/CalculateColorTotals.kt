@@ -6,9 +6,8 @@ import com.grdamico.colorcart.domain.model.RowColor
 class CalculateColorTotals {
     operator fun invoke(rows: List<ReceiptRow>): Map<RowColor, Double> {
         return RowColor.entries.associateWith { color ->
-            rows
-                .filter { it.color == color }
-                .sumOf { it.lineTotal }
+            rows.filter { it.color == color }
+                .sumOf { it.price * it.qty }
         }
     }
 }

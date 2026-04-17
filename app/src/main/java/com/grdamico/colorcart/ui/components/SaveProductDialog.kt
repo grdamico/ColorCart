@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -13,39 +14,39 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.unit.dp
 import com.grdamico.colorcart.domain.model.RowColor
-import com.grdamico.colorcart.ui.receipt.ReceiptViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SaveProductDialog(
-    viewModel: ReceiptViewModel,
     initialName: String = "",
     initialPrice: String = "",
     initialQuantity: String = "1",
     title: String = "Add product",
     onDismiss: () -> Unit,
-    onSaved: () -> Unit
+    onSave: (String, Double, Int, RowColor) -> Unit
 ) {
-    var name by remember { mutableStateOf(initialName) }
-    var priceText by remember { mutableStateOf(initialPrice) }
-    var qtyText by remember{ mutableStateOf(initialQuantity) }
+    var name by remember(initialName) { mutableStateOf(initialName) }
+    var priceText by remember(initialPrice) { mutableStateOf(initialPrice) }
+    var qtyText by remember(initialQuantity) { mutableStateOf(initialQuantity) }
     var selectedColor by remember { mutableStateOf(RowColor.NONE) }
     var expanded by remember { mutableStateOf(false) }
 
-    LaunchedEffect(initialName) {
-        if (initialName.isNotBlank()) {
-            name = viewModel.getDisplayNameForSave(initialName)
-        }
-    }
+    val parsedPrice = priceText.toDoubleOrNull()
+    val parsedQty = qtyText.toIntOrNull()
+
+    val isValid =
+        name.trim().isNotBlank() &&
+                parsedPrice != null &&
+                parsedPrice >= 0.0 &&
+                parsedQty != null &&
+                parsedQty > 0
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -56,6 +57,7 @@ fun SaveProductDialog(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text("Product name") },
+                    singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 8.dp)
@@ -65,6 +67,7 @@ fun SaveProductDialog(
                     value = priceText,
                     onValueChange = { priceText = it },
                     label = { Text("Price") },
+                    singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 8.dp)
@@ -74,6 +77,7 @@ fun SaveProductDialog(
                     value = qtyText,
                     onValueChange = { qtyText = it },
                     label = { Text("Quantity") },
+                    singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 8.dp)
@@ -93,9 +97,10 @@ fun SaveProductDialog(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
+                            .menuAnchor()
                     )
 
-                    ExposedDropdownMenu(
+                    DropdownMenu(
                         expanded = expanded,
                         onDismissRequest = { expanded = false }
                     ) {
@@ -110,25 +115,19 @@ fun SaveProductDialog(
                         }
                     }
                 }
-
-
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    val parsedPrice = priceText.toDoubleOrNull() ?: 0.0
-                    val parsedQty = qtyText.toIntOrNull() ?: 0
-
-                    viewModel.addRow(
-                        proposedName = name,
-                        price = parsedPrice,
-                        qty = parsedQty,
-                        color = selectedColor
+                    onSave(
+                        name.trim(),
+                        parsedPrice!!,
+                        parsedQty!!,
+                        selectedColor
                     )
-
-                    onSaved()
-                }
+                },
+                enabled = isValid
             ) {
                 Text("Save")
             }

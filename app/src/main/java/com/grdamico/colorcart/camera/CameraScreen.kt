@@ -40,12 +40,20 @@ fun CameraScreen(
 
     if (showSaveDialog) {
         SaveProductDialog(
-            viewModel = viewModel,
             initialName = "Milk",
             initialPrice = "2.49",
+            initialQuantity = "1",
             title = "Save product",
             onDismiss = { showSaveDialog = false },
-            onSaved = { showSaveDialog = false }
+            onSave = { name, price, qty, color ->
+                viewModel.addRow(
+                    proposedName = name,
+                    price = price,
+                    qty = qty,
+                    color = color
+                )
+                showSaveDialog = false
+            }
         )
     }
 }

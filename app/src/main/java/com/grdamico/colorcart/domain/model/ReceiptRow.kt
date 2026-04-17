@@ -5,8 +5,5 @@ data class ReceiptRow(
     val item: String,
     val price: Double,
     val qty: Int,
-    val color: RowColor = RowColor.NONE
-) {
-    val lineTotal: Double
-        get() = price * qty
-}
+    val color: RowColor
+)

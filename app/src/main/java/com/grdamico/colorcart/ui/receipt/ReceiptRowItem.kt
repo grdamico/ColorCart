@@ -23,6 +23,8 @@ fun ReceiptRowItem(
     row: ReceiptRow,
     onClick: () -> Unit
 ) {
+    val lineTotal = row.price * row.qty
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -59,7 +61,7 @@ fun ReceiptRowItem(
             )
 
             Text(
-                text = "%.2f".format(row.lineTotal),
+                text = "%.2f".format(lineTotal),
                 modifier = Modifier.weight(0.8f),
                 style = MaterialTheme.typography.bodySmall
             )

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -32,7 +33,16 @@ fun ReceiptEditDialog(
     var priceText by remember(row.id) { mutableStateOf(row.price.toString()) }
     var qtyText by remember(row.id) { mutableStateOf(row.qty.toString()) }
     var selectedColor by remember(row.id) { mutableStateOf(row.color) }
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by remember(row.id) { mutableStateOf(false) }
+
+    val parsedPrice = priceText.toDoubleOrNull()
+    val parsedQty = qtyText.toIntOrNull()
+
+    val isValid =
+        parsedPrice != null &&
+                parsedPrice >= 0.0 &&
+                parsedQty != null &&
+                parsedQty > 0
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -43,6 +53,7 @@ fun ReceiptEditDialog(
                     value = priceText,
                     onValueChange = { priceText = it },
                     label = { Text("Price") },
+                    singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 8.dp)
@@ -52,6 +63,7 @@ fun ReceiptEditDialog(
                     value = qtyText,
                     onValueChange = { qtyText = it },
                     label = { Text("Quantity") },
+                    singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 8.dp)
@@ -71,9 +83,10 @@ fun ReceiptEditDialog(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
+                            .menuAnchor()
                     )
 
-                    ExposedDropdownMenu(
+                    DropdownMenu(
                         expanded = expanded,
                         onDismissRequest = { expanded = false }
                     ) {
@@ -93,10 +106,9 @@ fun ReceiptEditDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val parsedPrice = priceText.toDoubleOrNull() ?: row.price
-                    val parsedQty = qtyText.toIntOrNull() ?: row.qty
-                    onSave(parsedPrice, parsedQty, selectedColor)
-                }
+                    onSave(parsedPrice!!, parsedQty!!, selectedColor)
+                },
+                enabled = isValid
             ) {
                 Text("Save")
             }

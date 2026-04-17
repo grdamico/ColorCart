@@ -4,6 +4,6 @@ import com.grdamico.colorcart.domain.model.ReceiptRow
 
 class CalculateGrandTotal {
     operator fun invoke(rows: List<ReceiptRow>): Double {
-        return rows.sumOf { it.lineTotal }
+        return rows.sumOf { it.price * it.qty }
     }
 }

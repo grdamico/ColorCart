@@ -1,5 +1,7 @@
 package com.grdamico.colorcart.ui.receipt
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.grdamico.colorcart.ui.components.SaveProductDialog
@@ -35,13 +38,19 @@ fun ReceiptScreen(
         Text(
             text = "Receipt",
             style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 8.dp)
+            modifier = Modifier.padding(
+                start = 16.dp,
+                top = 16.dp,
+                end = 16.dp,
+                bottom = 8.dp
+            )
         )
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             OutlinedTextField(
                 value = uiState.searchQuery,
@@ -52,8 +61,7 @@ fun ReceiptScreen(
             )
 
             Button(
-                onClick = { showAddDialog = true },
-                modifier = Modifier.padding(start = 8.dp)
+                onClick = { showAddDialog = true }
             ) {
                 Text("+")
             }
@@ -61,14 +69,35 @@ fun ReceiptScreen(
 
         ReceiptTableHeader()
 
-        LazyColumn(
-            modifier = Modifier.weight(1f)
-        ) {
-            items(uiState.filteredRows, key = { it.id }) { row ->
-                ReceiptRowItem(
-                    row = row,
-                    onClick = { viewModel.startEditing(row) }
+        if (uiState.filteredRows.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (uiState.searchQuery.isBlank()) {
+                        "No products yet"
+                    } else {
+                        "No products found"
+                    },
+                    style = MaterialTheme.typography.bodyLarge
                 )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f)
+            ) {
+                items(
+                    items = uiState.filteredRows,
+                    key = { it.id }
+                ) { row ->
+                    ReceiptRowItem(
+                        row = row,
+                        onClick = { viewModel.startEditing(row.id) }
+                    )
+                }
             }
         }
 
@@ -81,12 +110,20 @@ fun ReceiptScreen(
 
     if (showAddDialog) {
         SaveProductDialog(
-            viewModel = viewModel,
             initialName = "",
             initialPrice = "",
+            initialQuantity = "1",
             title = "Add product",
             onDismiss = { showAddDialog = false },
-            onSaved = { showAddDialog = false }
+            onSave = { name, price, qty, color ->
+                viewModel.addRow(
+                    proposedName = name,
+                    price = price,
+                    qty = qty,
+                    color = color
+                )
+                showAddDialog = false
+            }
         )
     }
 
