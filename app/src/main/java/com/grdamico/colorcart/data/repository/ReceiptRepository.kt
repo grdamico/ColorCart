@@ -28,6 +28,10 @@ class ReceiptRepository(
         receiptDao.deleteRowById(id)
     }
 
+    suspend fun clearAll() {
+        receiptDao.clearAll()
+    }
+
     suspend fun nextId(): Long {
         return (receiptDao.getMaxId() ?: 0L) + 1L
     }

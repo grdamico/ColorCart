@@ -140,6 +140,13 @@ class ReceiptViewModel(
         }
     }
 
+    fun clearAll() {
+        viewModelScope.launch {
+            repository.clearAll()
+            _editingRowId.value = null
+        }
+    }
+
     fun productNameExists(name: String): Boolean {
         val normalized = name.trim()
         if (normalized.isBlank()) return false

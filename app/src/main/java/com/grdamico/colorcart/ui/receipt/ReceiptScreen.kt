@@ -9,8 +9,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -33,21 +36,33 @@ fun ReceiptScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
+    var showClearDialog by remember { mutableStateOf(false) }
     var duplicateBisMessage by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        Text(
-            text = "Receipt",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(
-                start = 16.dp,
-                top = 16.dp,
-                end = 16.dp,
-                bottom = 8.dp
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Button(
+                onClick = { showClearDialog = true }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "New receipt"
+                )
+            }
+
+            Text(
+                text = "Receipt",
+                style = MaterialTheme.typography.headlineMedium
             )
-        )
+        }
 
         Row(
             modifier = Modifier
@@ -131,7 +146,7 @@ fun ReceiptScreen(
                 } else {
                     showAddDialog = false
                     duplicateBisMessage =
-                        "You cannot add ${name.trim()} Bis because a Bis of ${name.trim()} already exists."
+                        "You already have both ${name.trim()} and ${name.trim()} Bis. Start a new receipt or edit the existing item instead."
                 }
             }
         )
@@ -151,6 +166,33 @@ fun ReceiptScreen(
                     newQty = newQty,
                     newColor = newColor
                 )
+            }
+        )
+    }
+
+    if (showClearDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearDialog = false },
+            title = { Text("Start a new receipt?") },
+            text = {
+                Text("This will remove all the current items from the list.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.clearAll()
+                        showClearDialog = false
+                    }
+                ) {
+                    Text("Clear all")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showClearDialog = false }
+                ) {
+                    Text("Cancel")
+                }
             }
         )
     }
